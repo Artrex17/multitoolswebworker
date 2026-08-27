@@ -9,10 +9,14 @@ incluye varios subsistemas independientes:
 - **A (este spec):** carcasa del sitio + herramientas 100% cliente (sin backend).
 - **B (futuro):** conversión de documentos (PDF↔Word/Excel, unir/dividir) — requiere servidor.
 - **C (futuro):** conversión de audio/vídeo — requiere servidor.
-- **D (futuro, en evaluación):** descargador de contenido de redes sociales
-  (TikTok/Instagram/YouTube). Riesgo legal (ToS de las plataformas, posible
-  DMCA) y de mantenimiento (rompe cuando las plataformas cambian su API).
-  Queda en el roadmap sin comprometer su construcción todavía.
+- **D (descartado, 2026-08-27):** descargador de contenido de redes sociales
+  (TikTok/Instagram/YouTube). Se decidió no construirlo: viola los ToS de las
+  plataformas (riesgo de DMCA), requeriría infraestructura de servidor nueva
+  que Cloudflare Workers no puede correr (típicamente `yt-dlp` en un VPS o
+  servidor propio), y el riesgo más importante es que Google AdSense revoca
+  cuentas con bastante agresividad en sitios que ofrecen este tipo de
+  descarga — pondría en riesgo la monetización de **todo** el sitio, no solo
+  de esta herramienta. No retomar sin volver a evaluar este trade-off.
 
 Este documento cubre únicamente **A**. B/C/D se planificarán como
 sub-proyectos independientes cuando llegue su turno.
