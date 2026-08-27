@@ -377,6 +377,7 @@ input[type='range']::-moz-range-thumb {
 .preview-box {
   flex: 1;
   min-width: 180px;
+  cursor: zoom-in;
   background-color: #fff;
   background-image: linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%);
@@ -415,6 +416,39 @@ input[type='range']::-moz-range-thumb {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--ink-soft);
+}
+
+.zoom-dialog {
+  border: none;
+  border-radius: var(--radius-panel);
+  padding: 1rem;
+  background: #fff;
+  box-shadow: var(--shadow-panel);
+  max-width: 92vw;
+  max-height: 92vh;
+  cursor: zoom-out;
+}
+
+.zoom-dialog::backdrop {
+  background: rgba(23, 21, 18, 0.7);
+}
+
+#zoom-content img {
+  display: block;
+  max-width: 88vw;
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+}
+
+/* An SVG with only a viewBox (no width/height) has no intrinsic size, so give it
+   an explicit width and let height follow the viewBox aspect ratio. */
+#zoom-content svg {
+  display: block;
+  width: 70vw;
+  height: auto;
+  max-width: 88vw;
+  max-height: 88vh;
 }
 
 .error-strip {

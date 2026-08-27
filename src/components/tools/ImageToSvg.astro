@@ -102,8 +102,10 @@ const presets = [
 </style>
 
 <script>
-  import { rasterToSvg, type VectorizePreset } from '../../lib/svg';
+  import { createImageWorkerClient } from '../../lib/worker-client';
+  import type { VectorizePreset } from '../../lib/svg';
 
+  const client = createImageWorkerClient();
   const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
   const busyEl = document.querySelector<HTMLParagraphElement>('#busy')!;
@@ -116,7 +118,7 @@ const presets = [
   const colorInput = document.querySelector<HTMLInputElement>('#remove-color')!;
   const toleranceInput = document.querySelector<HTMLInputElement>('#tolerance')!;
 
-  let bitmap: ImageBitmap | null = null;
+  let file: File | null = null;
   let originalUrl: string | null = null;
   let downloadUrl: string | null = null;
   let requestToken = 0;
@@ -136,7 +138,7 @@ const presets = [
   }
 
   async function updateVector() {
-    if (!bitmap) return;
+    if (!file) return;
     errorEl.hidden = true;
     busyEl.hidden = false;
     const token = ++requestToken;
@@ -144,7 +146,7 @@ const presets = [
       ? { color: hexToRgb(colorInput.value), tolerance: Number(toleranceInput.value) }
       : undefined;
     try {
-      const svg = await rasterToSvg(bitmap, currentPreset(), removal);
+      const svg = await client.vectorize(file, currentPreset(), removal);
       if (token !== requestToken) return;
       vectorBox.innerHTML = svg;
 
@@ -166,8 +168,8 @@ const presets = [
     debounceTimer = window.setTimeout(updateVector, 150);
   }
 
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files?.[0];
+  fileInput.addEventListener('change', () => {
+    file = fileInput.files?.[0] ?? null;
     if (!file) return;
     errorEl.hidden = true;
 
@@ -175,12 +177,7 @@ const presets = [
     originalUrl = URL.createObjectURL(file);
     originalBox.innerHTML = `<img src="${originalUrl}" alt="" />`;
 
-    try {
-      bitmap = await createImageBitmap(file);
-      updateVector();
-    } catch {
-      errorEl.hidden = false;
-    }
+    updateVector();
   });
 
   document.querySelectorAll<HTMLInputElement>('input[name="preset"]').forEach((el) => {
@@ -197,18 +194,15 @@ const presets = [
   colorInput.addEventListener('input', scheduleUpdate);
   toleranceInput.addEventListener('input', scheduleUpdate);
 
-  originalBox.addEventListener('click', (event) => {
-    if (!removeToggle.checked || !bitmap) return;
+  originalBox.addEventListener('click', async (event) => {
+    if (!removeToggle.checked || !file) return;
     const img = originalBox.querySelector('img');
     if (!img) return;
     const rect = img.getBoundingClientRect();
-    const x = Math.min(bitmap.width - 1, Math.max(0, Math.round(((event.clientX - rect.left) / rect.width) * bitmap.width)));
-    const y = Math.min(bitmap.height - 1, Math.max(0, Math.round(((event.clientY - rect.top) / rect.height) * bitmap.height)));
+    const x = Math.min(img.naturalWidth - 1, Math.max(0, Math.round(((event.clientX - rect.left) / rect.width) * img.naturalWidth)));
+    const y = Math.min(img.naturalHeight - 1, Math.max(0, Math.round(((event.clientY - rect.top) / rect.height) * img.naturalHeight)));
 
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(bitmap, 0, 0);
-    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+    const { r, g, b } = await client.samplePixel(file, x, y);
     colorInput.value = rgbToHex(r, g, b);
     updateVector();
   });

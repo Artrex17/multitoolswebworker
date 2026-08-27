@@ -58,14 +58,16 @@ const t = {
 </section>
 
 <script>
-  import { convertImage, type ImageFormat } from '../../lib/image';
+  import { createImageWorkerClient } from '../../lib/worker-client';
+  import type { ImageFormat } from '../../lib/image';
 
+  const client = createImageWorkerClient();
   const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
   const previewBox = document.querySelector<HTMLDivElement>('#preview-box')!;
   const downloadEl = document.querySelector<HTMLAnchorElement>('#download')!;
 
-  let bitmap: ImageBitmap | null = null;
+  let file: File | null = null;
   let previewUrl: string | null = null;
   let debounceTimer: number | undefined;
   let requestToken = 0;
@@ -80,12 +82,12 @@ const t = {
   }
 
   async function updatePreview() {
-    if (!bitmap) return;
+    if (!file) return;
     errorEl.hidden = true;
     const token = ++requestToken;
     const { format, quality, maxWidth, maxHeight } = readControls();
     try {
-      const blob = await convertImage(bitmap, format, quality, maxWidth, maxHeight);
+      const blob = await client.convert(file, format, quality, maxWidth, maxHeight);
       if (token !== requestToken) return;
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = URL.createObjectURL(blob);
@@ -103,16 +105,11 @@ const t = {
     debounceTimer = window.setTimeout(updatePreview, 150);
   }
 
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files?.[0];
+  fileInput.addEventListener('change', () => {
+    file = fileInput.files?.[0] ?? null;
     if (!file) return;
     errorEl.hidden = true;
-    try {
-      bitmap = await createImageBitmap(file);
-      updatePreview();
-    } catch {
-      errorEl.hidden = false;
-    }
+    updatePreview();
   });
 
   document.querySelectorAll<HTMLInputElement>('input[name="format"]').forEach((el) => el.addEventListener('change', scheduleUpdate));

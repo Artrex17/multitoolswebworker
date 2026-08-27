@@ -42,6 +42,24 @@ const currentPath = new URL(Astro.request.url).pathname.replace(/\/$/, '') || `/
       <p>© {new Date().getFullYear()} multitools</p>
     </footer>
 
+    <dialog id="zoom-dialog" class="zoom-dialog">
+      <div id="zoom-content"></div>
+    </dialog>
+
+    <script>
+      const dialog = document.querySelector<HTMLDialogElement>('#zoom-dialog')!;
+      const content = document.querySelector<HTMLDivElement>('#zoom-content')!;
+
+      document.addEventListener('click', (event) => {
+        const box = (event.target as HTMLElement).closest('.preview-box');
+        if (!box) return;
+        content.innerHTML = box.innerHTML;
+        dialog.showModal();
+      });
+
+      dialog.addEventListener('click', () => dialog.close());
+    </script>
+
     <style>
       .page {
         display: flex;

@@ -61,25 +61,13 @@ export async function rasterToSvg(
   return ImageTracer.imagedataToSVG(imageData, { ...PRESET_OPTIONS[preset], viewbox: true });
 }
 
-/** Rasterizes an SVG string to a PNG/JPEG blob. Browser-only (needs Image + canvas). */
+/** Rasterizes an SVG string to a PNG/JPEG blob. Works on the main thread or in a Worker (no DOM Image needed). */
 export async function svgToRaster(svgText: string, mimeType: 'image/png' | 'image/jpeg'): Promise<Blob> {
   const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(svgBlob);
-  try {
-    const img = new Image();
-    const loaded = new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Invalid SVG'));
-    });
-    img.src = url;
-    await loaded;
-
-    const canvas = new OffscreenCanvas(img.naturalWidth, img.naturalHeight);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D context not available');
-    ctx.drawImage(img, 0, 0);
-    return canvas.convertToBlob({ type: mimeType });
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  const bitmap = await createImageBitmap(svgBlob);
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context not available');
+  ctx.drawImage(bitmap, 0, 0);
+  return canvas.convertToBlob({ type: mimeType });
 }

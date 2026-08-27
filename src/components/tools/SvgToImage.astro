@@ -46,8 +46,9 @@ const t = {
 </section>
 
 <script>
-  import { svgToRaster } from '../../lib/svg';
+  import { createImageWorkerClient } from '../../lib/worker-client';
 
+  const client = createImageWorkerClient();
   const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
   const previewBox = document.querySelector<HTMLDivElement>('#preview-box')!;
@@ -67,7 +68,7 @@ const t = {
     const token = ++requestToken;
     const mimeType = currentMimeType();
     try {
-      const blob = await svgToRaster(svgText, mimeType);
+      const blob = await client.rasterize(svgText, mimeType);
       if (token !== requestToken) return;
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = URL.createObjectURL(blob);
