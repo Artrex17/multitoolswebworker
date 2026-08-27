@@ -37,3 +37,10 @@ export const tools = {
     { href: '/en/generators/password', label: 'Password generator' },
   ],
 } as const;
+
+/** Non-tool content pages (not shown in the tool nav), kept here so Layout.astro
+ * can still resolve the correct hreflang alternate URL for them. */
+export const staticPages = {
+  es: [{ href: '/es/privacidad', label: 'Política de privacidad' }],
+  en: [{ href: '/en/privacy', label: 'Privacy policy' }],
+} as const;

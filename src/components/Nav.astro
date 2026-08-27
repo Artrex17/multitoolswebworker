@@ -1,5 +1,5 @@
 ---
-import { common, tools, type Lang } from '../i18n/strings';
+import { common, staticPages, tools, type Lang } from '../i18n/strings';
 
 interface Props {
   lang: Lang;
@@ -9,8 +9,9 @@ const { lang, currentPath } = Astro.props;
 const t = common[lang];
 const items = tools[lang];
 const otherLang: Lang = lang === 'es' ? 'en' : 'es';
-const toolIndex = items.findIndex((item) => item.href === currentPath);
-const otherLangHref = toolIndex === -1 ? `/${otherLang}/` : tools[otherLang][toolIndex].href;
+const pages = { es: [...tools.es, ...staticPages.es], en: [...tools.en, ...staticPages.en] };
+const pageIndex = pages[lang].findIndex((item) => item.href === currentPath);
+const otherLangHref = pageIndex === -1 ? `/${otherLang}/` : pages[otherLang][pageIndex].href;
 ---
 
 <header class="site-header">

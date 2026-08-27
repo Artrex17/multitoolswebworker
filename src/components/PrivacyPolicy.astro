@@ -1,0 +1,76 @@
+---
+import type { Lang } from '../i18n/strings';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+
+const t = {
+  es: {
+    heading: 'Política de privacidad',
+    updated: 'Última actualización: 27 de agosto de 2026',
+    p1h: 'Tus archivos nunca salen de tu navegador',
+    p1: 'Todas las herramientas de este sitio (conversión de imágenes, JSON, generadores...) procesan tus archivos y datos directamente en tu navegador. Nada se sube a ningún servidor nuestro: no vemos, guardamos ni tenemos acceso a los archivos, textos o imágenes que uses en estas herramientas.',
+    p2h: 'Anuncios',
+    p2: 'Este sitio muestra anuncios a través de Google AdSense. Google y sus socios publicitarios pueden usar cookies y tecnologías similares para mostrar anuncios en función de tus visitas a este y otros sitios web. Puedes consultar cómo Google usa esta información y gestionar tus preferencias de anuncios en los enlaces de abajo.',
+    p2link1: 'Cómo usa Google la información de los sitios que usan sus servicios',
+    p2link2: 'Configuración de anuncios de Google',
+    p3h: 'Cookies',
+    p3: 'No usamos cookies propias de seguimiento ni analíticas. Las únicas cookies presentes en el sitio son las que puedan establecer Google AdSense y sus socios, según lo descrito arriba.',
+    p4h: 'Cambios en esta política',
+    p4: 'Podemos actualizar esta política ocasionalmente. Los cambios se publicarán en esta misma página con la fecha de actualización correspondiente.',
+  },
+  en: {
+    heading: 'Privacy policy',
+    updated: 'Last updated: August 27, 2026',
+    p1h: 'Your files never leave your browser',
+    p1: 'Every tool on this site (image conversion, JSON, generators...) processes your files and data directly in your browser. Nothing is uploaded to any server of ours: we never see, store, or have access to the files, text, or images you use in these tools.',
+    p2h: 'Advertising',
+    p2: 'This site shows ads through Google AdSense. Google and its advertising partners may use cookies and similar technologies to serve ads based on your visits to this and other websites. You can review how Google uses this information and manage your ad preferences at the links below.',
+    p2link1: 'How Google uses information from sites that use its services',
+    p2link2: 'Google Ads Settings',
+    p3h: 'Cookies',
+    p3: "We don't use our own tracking or analytics cookies. The only cookies present on this site are those that may be set by Google AdSense and its partners, as described above.",
+    p4h: 'Changes to this policy',
+    p4: 'We may update this policy occasionally. Changes will be posted on this same page along with the corresponding update date.',
+  },
+}[lang];
+---
+
+<section class="panel">
+  <h1>{t.heading}</h1>
+  <p class="updated">{t.updated}</p>
+
+  <h2>{t.p1h}</h2>
+  <p>{t.p1}</p>
+
+  <h2>{t.p2h}</h2>
+  <p>{t.p2}</p>
+  <ul>
+    <li><a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">{t.p2link1}</a></li>
+    <li><a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">{t.p2link2}</a></li>
+  </ul>
+
+  <h2>{t.p3h}</h2>
+  <p>{t.p3}</p>
+
+  <h2>{t.p4h}</h2>
+  <p>{t.p4}</p>
+</section>
+
+<style>
+  .updated {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    margin-top: 1.75rem;
+  }
+  ul {
+    padding-left: 1.25rem;
+  }
+</style>

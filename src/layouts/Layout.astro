@@ -2,7 +2,7 @@
 import Nav from '../components/Nav.astro';
 import AdSlot from '../components/AdSlot.astro';
 import '../styles/global.css';
-import { tools, type Lang } from '../i18n/strings';
+import { staticPages, tools, type Lang } from '../i18n/strings';
 
 interface Props {
   lang: Lang;
@@ -14,8 +14,9 @@ const currentPath = new URL(Astro.request.url).pathname.replace(/\/$/, '') || `/
 
 // Find this same page's URL in the other language, for hreflang alternates.
 const otherLang: Lang = lang === 'es' ? 'en' : 'es';
-const toolIndex = tools[lang].findIndex((item) => item.href === currentPath);
-const otherLangPath = toolIndex === -1 ? `/${otherLang}/` : tools[otherLang][toolIndex].href;
+const pages = { es: [...tools.es, ...staticPages.es], en: [...tools.en, ...staticPages.en] };
+const pageIndex = pages[lang].findIndex((item) => item.href === currentPath);
+const otherLangPath = pageIndex === -1 ? `/${otherLang}/` : pages[otherLang][pageIndex].href;
 const esPath = lang === 'es' ? currentPath : otherLangPath;
 const enPath = lang === 'en' ? currentPath : otherLangPath;
 
@@ -37,6 +38,15 @@ const ogLocale = lang === 'es' ? 'es_ES' : 'en_US';
     <link rel="alternate" hreflang="en" href={`${siteUrl}${enPath}/`} />
     <link rel="alternate" hreflang="x-default" href={`${siteUrl}${esPath}/`} />
     <link rel="icon" href="/favicon.svg" />
+
+    {!import.meta.env.DEV && (
+      <script
+        is:inline
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7015760232737475"
+        crossorigin="anonymous"
+      ></script>
+    )}
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="multitools" />
@@ -68,7 +78,7 @@ const ogLocale = lang === 'es' ? 'es_ES' : 'en_US';
       <AdSlot slot="3333333333" variant="sidebar" />
     </div>
     <footer>
-      <p>© {new Date().getFullYear()} multitools</p>
+      <p>© {new Date().getFullYear()} multitools · <a href={staticPages[lang][0].href}>{staticPages[lang][0].label}</a></p>
     </footer>
 
     <dialog id="zoom-dialog" class="zoom-dialog">
@@ -117,6 +127,13 @@ const ogLocale = lang === 'es' ? 'es_ES' : 'en_US';
         font-size: 0.8rem;
         color: var(--ink-soft);
         border-top: 1px solid rgba(42, 39, 35, 0.1);
+      }
+      footer a {
+        color: var(--ink-soft);
+        text-decoration: underline;
+      }
+      footer a:hover {
+        color: var(--ink);
       }
     </style>
   </body>
