@@ -16,6 +16,10 @@ const t = {
     sharp: 'Nítido',
     posterized2: 'Póster (pocos colores)',
     grayscale: 'Blanco y negro',
+    removeColor: 'Eliminar un color (ej. el fondo)',
+    colorLabel: 'Color a eliminar',
+    tolerance: 'Tolerancia',
+    pickHint: 'Con "eliminar color" activo, haz clic en la imagen original para elegir el color exacto',
     original: 'Original',
     vectorized: 'Vectorizado',
     download: 'Descargar SVG',
@@ -31,6 +35,10 @@ const t = {
     sharp: 'Sharp',
     posterized2: 'Poster (few colors)',
     grayscale: 'Black & white',
+    removeColor: 'Remove a color (e.g. the background)',
+    colorLabel: 'Color to remove',
+    tolerance: 'Tolerance',
+    pickHint: 'With "remove color" on, click the original image to pick the exact color',
     original: 'Original',
     vectorized: 'Vectorized',
     download: 'Download SVG',
@@ -63,6 +71,12 @@ const presets = [
         ))}
       </div>
     </label>
+    <label class="toggle"><input type="checkbox" id="remove-toggle" /><span class="toggle-track"><span class="toggle-thumb"></span></span>{t.removeColor}</label>
+    <div class="field-row" id="remove-controls" hidden>
+      <label>{t.colorLabel}<input type="color" id="remove-color" value="#ffffff" /></label>
+      <label>{t.tolerance}<input type="range" id="tolerance" min="0" max="120" step="1" value="40" /></label>
+    </div>
+    <p class="busy-note" id="pick-hint" hidden>{t.pickHint}</p>
   </div>
   <p class="error-strip" id="error" role="alert" hidden>{t.error}</p>
   <p class="busy-note" id="busy" hidden>{t.processing}</p>
@@ -81,23 +95,44 @@ const presets = [
   </div>
 </section>
 
+<style>
+  #original-box.pickable img {
+    cursor: crosshair;
+  }
+</style>
+
 <script>
   import { rasterToSvg, type VectorizePreset } from '../../lib/svg';
 
   const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
   const busyEl = document.querySelector<HTMLParagraphElement>('#busy')!;
+  const pickHintEl = document.querySelector<HTMLParagraphElement>('#pick-hint')!;
   const originalBox = document.querySelector<HTMLDivElement>('#original-box')!;
   const vectorBox = document.querySelector<HTMLDivElement>('#vector-box')!;
   const downloadEl = document.querySelector<HTMLAnchorElement>('#download')!;
+  const removeToggle = document.querySelector<HTMLInputElement>('#remove-toggle')!;
+  const removeControls = document.querySelector<HTMLDivElement>('#remove-controls')!;
+  const colorInput = document.querySelector<HTMLInputElement>('#remove-color')!;
+  const toleranceInput = document.querySelector<HTMLInputElement>('#tolerance')!;
 
   let bitmap: ImageBitmap | null = null;
   let originalUrl: string | null = null;
   let downloadUrl: string | null = null;
   let requestToken = 0;
+  let debounceTimer: number | undefined;
 
   function currentPreset(): VectorizePreset {
     return document.querySelector<HTMLInputElement>('input[name="preset"]:checked')!.value as VectorizePreset;
+  }
+
+  function hexToRgb(hex: string) {
+    const n = parseInt(hex.slice(1), 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function rgbToHex(r: number, g: number, b: number) {
+    return '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('');
   }
 
   async function updateVector() {
@@ -105,8 +140,11 @@ const presets = [
     errorEl.hidden = true;
     busyEl.hidden = false;
     const token = ++requestToken;
+    const removal = removeToggle.checked
+      ? { color: hexToRgb(colorInput.value), tolerance: Number(toleranceInput.value) }
+      : undefined;
     try {
-      const svg = await rasterToSvg(bitmap, currentPreset());
+      const svg = await rasterToSvg(bitmap, currentPreset(), removal);
       if (token !== requestToken) return;
       vectorBox.innerHTML = svg;
 
@@ -121,6 +159,11 @@ const presets = [
     } finally {
       if (token === requestToken) busyEl.hidden = true;
     }
+  }
+
+  function scheduleUpdate() {
+    clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(updateVector, 150);
   }
 
   fileInput.addEventListener('change', async () => {
@@ -142,5 +185,31 @@ const presets = [
 
   document.querySelectorAll<HTMLInputElement>('input[name="preset"]').forEach((el) => {
     el.addEventListener('change', updateVector);
+  });
+
+  removeToggle.addEventListener('change', () => {
+    removeControls.hidden = !removeToggle.checked;
+    pickHintEl.hidden = !removeToggle.checked;
+    originalBox.classList.toggle('pickable', removeToggle.checked);
+    updateVector();
+  });
+
+  colorInput.addEventListener('input', scheduleUpdate);
+  toleranceInput.addEventListener('input', scheduleUpdate);
+
+  originalBox.addEventListener('click', (event) => {
+    if (!removeToggle.checked || !bitmap) return;
+    const img = originalBox.querySelector('img');
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    const x = Math.min(bitmap.width - 1, Math.max(0, Math.round(((event.clientX - rect.left) / rect.width) * bitmap.width)));
+    const y = Math.min(bitmap.height - 1, Math.max(0, Math.round(((event.clientY - rect.top) / rect.height) * bitmap.height)));
+
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(bitmap, 0, 0);
+    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+    colorInput.value = rgbToHex(r, g, b);
+    updateVector();
   });
 </script>

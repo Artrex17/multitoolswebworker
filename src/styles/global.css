@@ -205,6 +205,17 @@ label {
   margin-bottom: 1rem;
 }
 
+input[type='color'] {
+  width: 48px;
+  height: 40px;
+  padding: 3px;
+  border: none;
+  border-radius: var(--radius-key);
+  background: var(--bone-deep);
+  box-shadow: var(--shadow-pressed);
+  cursor: pointer;
+}
+
 /* Range slider */
 input[type='range'] {
   -webkit-appearance: none;
