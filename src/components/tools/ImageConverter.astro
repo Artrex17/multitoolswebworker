@@ -14,7 +14,6 @@ const t = {
     quality: 'Calidad',
     maxWidth: 'Ancho máximo (px, opcional)',
     maxHeight: 'Alto máximo (px, opcional)',
-    convert: 'Convertir',
     download: 'Descargar resultado',
     error: 'No se pudo procesar la imagen. Comprueba que el archivo sea válido.',
   },
@@ -25,7 +24,6 @@ const t = {
     quality: 'Quality',
     maxWidth: 'Max width (px, optional)',
     maxHeight: 'Max height (px, optional)',
-    convert: 'Convert',
     download: 'Download result',
     error: 'Could not process the image. Check that the file is valid.',
   },
@@ -34,8 +32,8 @@ const t = {
 
 <section class="panel tool">
   <h1>{t.heading}</h1>
-  <form id="image-form">
-    <label>{t.file}<input type="file" id="file" accept="image/png,image/jpeg,image/webp" required /></label>
+  <div class="controls">
+    <label>{t.file}<input type="file" id="file" accept="image/png,image/jpeg,image/webp" /></label>
     <label>
       {t.format}
       <div class="rocker">
@@ -49,43 +47,76 @@ const t = {
       <label>{t.maxWidth}<input type="number" id="maxWidth" min="1" /></label>
       <label>{t.maxHeight}<input type="number" id="maxHeight" min="1" /></label>
     </div>
-    <div class="actions">
-      <button class="btn btn-primary" type="submit">{t.convert}</button>
-    </div>
-  </form>
+  </div>
   <p class="error-strip" id="error" role="alert" hidden>{t.error}</p>
-  <a class="btn" id="download" hidden download>{t.download}</a>
+  <div class="preview-area">
+    <div class="preview-box" id="preview-box"></div>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" id="download" hidden download>{t.download}</a>
+  </div>
 </section>
 
 <script>
   import { convertImage, type ImageFormat } from '../../lib/image';
 
-  const form = document.querySelector<HTMLFormElement>('#image-form')!;
+  const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
+  const previewBox = document.querySelector<HTMLDivElement>('#preview-box')!;
   const downloadEl = document.querySelector<HTMLAnchorElement>('#download')!;
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
+  let bitmap: ImageBitmap | null = null;
+  let previewUrl: string | null = null;
+  let debounceTimer: number | undefined;
+  let requestToken = 0;
+
+  function readControls() {
+    return {
+      format: document.querySelector<HTMLInputElement>('input[name="format"]:checked')!.value as ImageFormat,
+      quality: Number(document.querySelector<HTMLInputElement>('#quality')!.value),
+      maxWidth: Number(document.querySelector<HTMLInputElement>('#maxWidth')!.value) || undefined,
+      maxHeight: Number(document.querySelector<HTMLInputElement>('#maxHeight')!.value) || undefined,
+    };
+  }
+
+  async function updatePreview() {
+    if (!bitmap) return;
     errorEl.hidden = true;
-    downloadEl.hidden = true;
-
-    const fileInput = document.querySelector<HTMLInputElement>('#file')!;
-    const file = fileInput.files?.[0];
-    if (!file) return;
-
-    const format = document.querySelector<HTMLInputElement>('input[name="format"]:checked')!.value as ImageFormat;
-    const quality = Number(document.querySelector<HTMLInputElement>('#quality')!.value);
-    const maxWidth = Number(document.querySelector<HTMLInputElement>('#maxWidth')!.value) || undefined;
-    const maxHeight = Number(document.querySelector<HTMLInputElement>('#maxHeight')!.value) || undefined;
-
+    const token = ++requestToken;
+    const { format, quality, maxWidth, maxHeight } = readControls();
     try {
-      const bitmap = await createImageBitmap(file);
       const blob = await convertImage(bitmap, format, quality, maxWidth, maxHeight);
-      downloadEl.href = URL.createObjectURL(blob);
+      if (token !== requestToken) return;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(blob);
+      previewBox.innerHTML = `<img src="${previewUrl}" alt="" />`;
+      downloadEl.href = previewUrl;
       downloadEl.download = `converted.${format}`;
       downloadEl.hidden = false;
+    } catch {
+      if (token === requestToken) errorEl.hidden = false;
+    }
+  }
+
+  function scheduleUpdate() {
+    clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(updatePreview, 150);
+  }
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    errorEl.hidden = true;
+    try {
+      bitmap = await createImageBitmap(file);
+      updatePreview();
     } catch {
       errorEl.hidden = false;
     }
   });
+
+  document.querySelectorAll<HTMLInputElement>('input[name="format"]').forEach((el) => el.addEventListener('change', scheduleUpdate));
+  document.querySelector('#quality')!.addEventListener('input', scheduleUpdate);
+  document.querySelector('#maxWidth')!.addEventListener('input', scheduleUpdate);
+  document.querySelector('#maxHeight')!.addEventListener('input', scheduleUpdate);
 </script>

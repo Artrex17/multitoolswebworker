@@ -10,57 +10,137 @@ const t = {
   es: {
     heading: 'PNG/JPEG a SVG (vectorizar)',
     file: 'Elige una imagen (PNG o JPEG)',
-    convert: 'Vectorizar',
+    profile: 'Perfil de vectorizado',
+    detailed: 'Foto (alto detalle)',
+    smoothed: 'Suave',
+    sharp: 'Nítido',
+    posterized2: 'Póster (pocos colores)',
+    grayscale: 'Blanco y negro',
+    original: 'Original',
+    vectorized: 'Vectorizado',
     download: 'Descargar SVG',
+    processing: 'Vectorizando…',
     error: 'No se pudo vectorizar la imagen. Prueba con una imagen simple o de menor tamaño.',
   },
   en: {
     heading: 'PNG/JPEG to SVG (vectorize)',
     file: 'Choose an image (PNG or JPEG)',
-    convert: 'Vectorize',
+    profile: 'Vectorize profile',
+    detailed: 'Photo (high detail)',
+    smoothed: 'Smooth',
+    sharp: 'Sharp',
+    posterized2: 'Poster (few colors)',
+    grayscale: 'Black & white',
+    original: 'Original',
+    vectorized: 'Vectorized',
     download: 'Download SVG',
+    processing: 'Vectorizing…',
     error: 'Could not vectorize the image. Try a simpler or smaller image.',
   },
 }[lang];
+
+const presets = [
+  { value: 'detailed', label: t.detailed },
+  { value: 'smoothed', label: t.smoothed },
+  { value: 'sharp', label: t.sharp },
+  { value: 'posterized2', label: t.posterized2 },
+  { value: 'grayscale', label: t.grayscale },
+];
 ---
 
 <section class="panel tool">
   <h1>{t.heading}</h1>
-  <form id="svg-form">
-    <label>{t.file}<input type="file" id="file" accept="image/png,image/jpeg" required /></label>
-    <div class="actions">
-      <button class="btn btn-primary" type="submit">{t.convert}</button>
-    </div>
-  </form>
+  <div class="controls">
+    <label>{t.file}<input type="file" id="file" accept="image/png,image/jpeg" /></label>
+    <label>
+      {t.profile}
+      <div class="rocker">
+        {presets.map((p, i) => (
+          <label class="rocker-option">
+            <input type="radio" name="preset" value={p.value} checked={i === 0} />
+            <span>{p.label}</span>
+          </label>
+        ))}
+      </div>
+    </label>
+  </div>
   <p class="error-strip" id="error" role="alert" hidden>{t.error}</p>
-  <a class="btn" id="download" hidden download>{t.download}</a>
+  <p class="busy-note" id="busy" hidden>{t.processing}</p>
+  <div class="preview-area">
+    <div>
+      <p class="preview-label">{t.original}</p>
+      <div class="preview-box" id="original-box"></div>
+    </div>
+    <div>
+      <p class="preview-label">{t.vectorized}</p>
+      <div class="preview-box" id="vector-box"></div>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" id="download" hidden download>{t.download}</a>
+  </div>
 </section>
 
 <script>
-  import { rasterToSvg } from '../../lib/svg';
+  import { rasterToSvg, type VectorizePreset } from '../../lib/svg';
 
-  const form = document.querySelector<HTMLFormElement>('#svg-form')!;
+  const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
+  const busyEl = document.querySelector<HTMLParagraphElement>('#busy')!;
+  const originalBox = document.querySelector<HTMLDivElement>('#original-box')!;
+  const vectorBox = document.querySelector<HTMLDivElement>('#vector-box')!;
   const downloadEl = document.querySelector<HTMLAnchorElement>('#download')!;
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
+  let bitmap: ImageBitmap | null = null;
+  let originalUrl: string | null = null;
+  let downloadUrl: string | null = null;
+  let requestToken = 0;
+
+  function currentPreset(): VectorizePreset {
+    return document.querySelector<HTMLInputElement>('input[name="preset"]:checked')!.value as VectorizePreset;
+  }
+
+  async function updateVector() {
+    if (!bitmap) return;
     errorEl.hidden = true;
-    downloadEl.hidden = true;
-
-    const fileInput = document.querySelector<HTMLInputElement>('#file')!;
-    const file = fileInput.files?.[0];
-    if (!file) return;
-
+    busyEl.hidden = false;
+    const token = ++requestToken;
     try {
-      const bitmap = await createImageBitmap(file);
-      const svg = await rasterToSvg(bitmap);
+      const svg = await rasterToSvg(bitmap, currentPreset());
+      if (token !== requestToken) return;
+      vectorBox.innerHTML = svg;
+
       const blob = new Blob([svg], { type: 'image/svg+xml' });
-      downloadEl.href = URL.createObjectURL(blob);
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+      downloadUrl = URL.createObjectURL(blob);
+      downloadEl.href = downloadUrl;
       downloadEl.download = 'vectorized.svg';
       downloadEl.hidden = false;
     } catch {
+      if (token === requestToken) errorEl.hidden = false;
+    } finally {
+      if (token === requestToken) busyEl.hidden = true;
+    }
+  }
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    errorEl.hidden = true;
+
+    if (originalUrl) URL.revokeObjectURL(originalUrl);
+    originalUrl = URL.createObjectURL(file);
+    originalBox.innerHTML = `<img src="${originalUrl}" alt="" />`;
+
+    try {
+      bitmap = await createImageBitmap(file);
+      updateVector();
+    } catch {
       errorEl.hidden = false;
     }
+  });
+
+  document.querySelectorAll<HTMLInputElement>('input[name="preset"]').forEach((el) => {
+    el.addEventListener('change', updateVector);
   });
 </script>

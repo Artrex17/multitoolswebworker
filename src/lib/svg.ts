@@ -1,13 +1,15 @@
 import ImageTracer from 'imagetracerjs';
 
-/** Vectorizes a raster image into an SVG string. Browser-only (needs canvas to read pixel data). */
-export async function rasterToSvg(bitmap: ImageBitmap): Promise<string> {
+export type VectorizePreset = 'detailed' | 'smoothed' | 'sharp' | 'posterized2' | 'grayscale';
+
+/** Vectorizes a raster image into an SVG string, using one of imagetracerjs's built-in tracing presets. Browser-only (needs canvas to read pixel data). */
+export async function rasterToSvg(bitmap: ImageBitmap, preset: VectorizePreset = 'detailed'): Promise<string> {
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D context not available');
   ctx.drawImage(bitmap, 0, 0);
   const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
-  return ImageTracer.imagedataToSVG(imageData, undefined);
+  return ImageTracer.imagedataToSVG(imageData, preset);
 }
 
 /** Rasterizes an SVG string to a PNG/JPEG blob. Browser-only (needs Image + canvas). */
