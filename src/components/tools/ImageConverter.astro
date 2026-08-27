@@ -15,6 +15,7 @@ const t = {
     maxWidth: 'Ancho máximo (px, opcional)',
     maxHeight: 'Alto máximo (px, opcional)',
     download: 'Descargar resultado',
+    processing: 'Procesando…',
     error: 'No se pudo procesar la imagen. Comprueba que el archivo sea válido.',
   },
   en: {
@@ -25,6 +26,7 @@ const t = {
     maxWidth: 'Max width (px, optional)',
     maxHeight: 'Max height (px, optional)',
     download: 'Download result',
+    processing: 'Processing…',
     error: 'Could not process the image. Check that the file is valid.',
   },
 }[lang];
@@ -49,6 +51,8 @@ const t = {
     </div>
   </div>
   <p class="error-strip" id="error" role="alert" hidden>{t.error}</p>
+  <div class="progress-bar" id="progress" role="progressbar" aria-label={t.processing} hidden></div>
+  <p class="busy-note" id="busy" hidden>{t.processing}</p>
   <div class="preview-area">
     <div class="preview-box" id="preview-box"></div>
   </div>
@@ -64,6 +68,8 @@ const t = {
   const client = createImageWorkerClient();
   const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
+  const progressEl = document.querySelector<HTMLDivElement>('#progress')!;
+  const busyEl = document.querySelector<HTMLParagraphElement>('#busy')!;
   const previewBox = document.querySelector<HTMLDivElement>('#preview-box')!;
   const downloadEl = document.querySelector<HTMLAnchorElement>('#download')!;
 
@@ -84,6 +90,8 @@ const t = {
   async function updatePreview() {
     if (!file) return;
     errorEl.hidden = true;
+    progressEl.hidden = false;
+    busyEl.hidden = false;
     const token = ++requestToken;
     const { format, quality, maxWidth, maxHeight } = readControls();
     try {
@@ -97,6 +105,11 @@ const t = {
       downloadEl.hidden = false;
     } catch {
       if (token === requestToken) errorEl.hidden = false;
+    } finally {
+      if (token === requestToken) {
+        progressEl.hidden = true;
+        busyEl.hidden = true;
+      }
     }
   }
 

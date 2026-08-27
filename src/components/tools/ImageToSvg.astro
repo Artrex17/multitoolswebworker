@@ -79,6 +79,7 @@ const presets = [
     <p class="busy-note" id="pick-hint" hidden>{t.pickHint}</p>
   </div>
   <p class="error-strip" id="error" role="alert" hidden>{t.error}</p>
+  <div class="progress-bar" id="progress" role="progressbar" aria-label={t.processing} hidden></div>
   <p class="busy-note" id="busy" hidden>{t.processing}</p>
   <div class="preview-area">
     <div>
@@ -108,6 +109,7 @@ const presets = [
   const client = createImageWorkerClient();
   const fileInput = document.querySelector<HTMLInputElement>('#file')!;
   const errorEl = document.querySelector<HTMLParagraphElement>('#error')!;
+  const progressEl = document.querySelector<HTMLDivElement>('#progress')!;
   const busyEl = document.querySelector<HTMLParagraphElement>('#busy')!;
   const pickHintEl = document.querySelector<HTMLParagraphElement>('#pick-hint')!;
   const originalBox = document.querySelector<HTMLDivElement>('#original-box')!;
@@ -140,6 +142,7 @@ const presets = [
   async function updateVector() {
     if (!file) return;
     errorEl.hidden = true;
+    progressEl.hidden = false;
     busyEl.hidden = false;
     const token = ++requestToken;
     const removal = removeToggle.checked
@@ -159,7 +162,10 @@ const presets = [
     } catch {
       if (token === requestToken) errorEl.hidden = false;
     } finally {
-      if (token === requestToken) busyEl.hidden = true;
+      if (token === requestToken) {
+        progressEl.hidden = true;
+        busyEl.hidden = true;
+      }
     }
   }
 
