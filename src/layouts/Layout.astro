@@ -2,7 +2,7 @@
 import Nav from '../components/Nav.astro';
 import AdSlot from '../components/AdSlot.astro';
 import '../styles/global.css';
-import type { Lang } from '../i18n/strings';
+import { tools, type Lang } from '../i18n/strings';
 
 interface Props {
   lang: Lang;
@@ -11,6 +11,18 @@ interface Props {
 }
 const { lang, title, description } = Astro.props;
 const currentPath = new URL(Astro.request.url).pathname.replace(/\/$/, '') || `/${lang}`;
+
+// Find this same page's URL in the other language, for hreflang alternates.
+const otherLang: Lang = lang === 'es' ? 'en' : 'es';
+const toolIndex = tools[lang].findIndex((item) => item.href === currentPath);
+const otherLangPath = toolIndex === -1 ? `/${otherLang}/` : tools[otherLang][toolIndex].href;
+const esPath = lang === 'es' ? currentPath : otherLangPath;
+const enPath = lang === 'en' ? currentPath : otherLangPath;
+
+const siteUrl = (Astro.site?.origin ?? 'https://multitoolswebworker.artrex17thephoenix.workers.dev').replace(/\/$/, '');
+const canonicalUrl = `${siteUrl}${currentPath}/`;
+const ogImageUrl = `${siteUrl}/og-image.png`;
+const ogLocale = lang === 'es' ? 'es_ES' : 'en_US';
 ---
 
 <!doctype html>
@@ -20,7 +32,24 @@ const currentPath = new URL(Astro.request.url).pathname.replace(/\/$/, '') || `/
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="es" href={`${siteUrl}${esPath}/`} />
+    <link rel="alternate" hreflang="en" href={`${siteUrl}${enPath}/`} />
+    <link rel="alternate" hreflang="x-default" href={`${siteUrl}${esPath}/`} />
     <link rel="icon" href="/favicon.svg" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="multitools" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:locale" content={ogLocale} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://multitoolswebworker.artrex17thephoenix.workers.dev/sitemap-index.xml
